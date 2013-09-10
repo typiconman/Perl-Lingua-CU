@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="generator" content="Pod::HtmlEasy/1.1.10 Pod::Parser/1.37 Perl/5.014002 [linux]">
+<title>
+Lingua::CU - Perl extension for working with Church Slavonic text in Unicode
+</title>
+<style type="text/css"> <!--/* Properties that apply to the entire HTML file produced */
+BODY {
+    background: white;
+    color: black;
+    font-family: arial,sans-serif;
+    margin: 0;
+    padding: 1ex;
+}
+/* The links; no change once visited */
+A:link, A:visited {
+    background: transparent;
+    color: #006699;
+}
+/* Applies to <div> contents; that's most everything
+DIV {
+    border-width: 0;
+}
+/* <pre> is used for verbatum POD */
+.pod PRE     {
+    background: #eeeeee;
+    border: 1px solid #888888;
+    color: black;
+    padding: 1em;
+    white-space: pre;
+}
+/* This is the style of the header/footer of the POD pages */
+.HF     {
+    background: #eeeeee;
+    border: 1px solid #888888;
+    color: black;
+    margin: 1ex 0;
+    padding: 0.5ex 1ex;
+}
+/* <h1> result from processing =head1, and are generated only in class="pod" */
+.pod H1      {
+    background: transparent;
+    color: #006699;
+    font-size: large;
+}
+/* Ditto <h1> */
+.pod H2, H3, H4      {
+    background: transparent;
+    color: #006699;
+    font-size: medium;
+}
+/* Applies to all <a ... generated */
+.pod .toc A  {
+    text-decoration: none;
+}
+/* <li> items in the class="toc"; the table of contents, aka "index" */
+/* <li> in class="pod" -- the actual POD -- default to browser defaults */
+.toc li {
+    line-height: 1.2em;
+    list-style-type: none;
+}
+
+--></style>
+</head>
+<body  alink="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066">
+<div class="toc">
+<ul>
+<li><a href='#NAME'>NAME</a></li>
+<li><a href='#SYNOPSIS'>SYNOPSIS</a></li>
+<li><a href='#DESCRIPTION'>DESCRIPTION</a></li>
+<ul>
+<li><a href='#EXPORT'>EXPORT</a></li>
+</ul>
+<li><a href='#METHODS'>METHODS</a></li>
+<ul>
+<li><a href='#arabicToCyrillic'>arabicToCyrillic</a></li>
+<li><a href='#cyrillicToArabic'>cyrillicToArabic</a></li>
+<li><a href='#resolve'>resolve</a></li>
+<li><a href='#cu2ru'>cu2ru</a></li>
+</ul>
+<li><a href='#SEE ALSO'>SEE ALSO</a></li>
+<li><a href='#AUTHOR'>AUTHOR</a></li>
+<li><a href='#COPYRIGHT AND LICENSE'>COPYRIGHT AND LICENSE</a></li>
+</ul>
+</div>
+<div class='pod'>
+<a name='NAME'></a><h1>NAME</h1>
+<p>Lingua::CU - Perl extension for working with Church Slavonic text in Unicode</p>
+<a name='SYNOPSIS'></a><h1>SYNOPSIS</h1>
+<pre>  use Lingua::CU ':all';
+  arabicToCyrillic (21); # returns к҃а
+  cyrillicToArabic (&quot;к҃а&quot;); # returns 21
+  resolve (&quot;ст҃ъ&quot;); # returns свѧ́тъ
+  cu2ru (&quot;ст҃ъ&quot;); # returns свя́тъ
+  cu2ru (&quot;ст҃ъ&quot;, { noaccents =&gt; 1, modernrules =&gt; 1 }); # returns свят</pre>
+<a name='DESCRIPTION'></a><h1>DESCRIPTION</h1>
+<p>Lingua::CU is a module for performing various operations with Church Slavonic texts.</p>
+<p>It includes the following capabilities:</p>
+<ul>
+<li><a name='Resolve Church Slavonic abbreviations and nomina sacra'></a>Resolve Church Slavonic abbreviations and <i>nomina sacra</i></li>
+<li><a name='Convert between Cyrillic and Arabic numerals'></a>Convert between Cyrillic and Arabic numerals</li>
+<li><a name='Perform basic conversions between the Julian and Gregorian calendars (TODO)'></a>Perform basic conversions between the Julian and Gregorian calendars (TODO)</li>
+<li><a name='Convert Church Slavonic text to Russian characters (both traditional and reformed orthography)'></a>Convert Church Slavonic text to Russian characters (both traditional and reformed orthography)</li>
+<li><a name='Romanize (transliterate to Latin) Church Slavonic text using various systems (TODO)'></a>Romanize (transliterate to Latin) Church Slavonic text using various systems (TODO)</li>
+<li><a name='Convert between Unicode and legacy UCS and HIP encodings (TODO)'></a>Convert between Unicode and legacy UCS and HIP encodings (TODO)</li>
+<li><a name='Sort Church Slavonic words using a tailoring of the DUCET (TODO)'></a>Sort Church Slavonic words using a tailoring of the DUCET (TODO)</li>
+<li><a name='Perform stemming of Church Slavonic words (TODO)'></a>Perform stemming of Church Slavonic words (TODO)</li>
+</ul>
+<p>All text supplied to this library must be encoded in UTF-8 and, unless otherwise specified, is assumed to be
+in Unicode. For more on Church Slavonic using Unicode, please see the paper
+<i>Roadmap for Church Slavonic Typography in the Unicode Standard</i> available at
+<a href='http://www.ponomar.net/.' target='_blank'>www.ponomar.net</a></p>
+<p>This program is ALPHA STAGE SOFTWARE and is provided with ABSOLUTELY NO WARRANTY of any kind,
+express or implied, not even the implied warranties of merchantability, fitness for a purpose, or non-infringement.</p>
+<a name='EXPORT'></a><h2>EXPORT</h2>
+<p>No methods are exported by default.</p>
+<p>The following methods may be exported if specified explicitly: <code>arabicToCyrillic</code> <code>cyrillicToArabic</code> <code>resolve</code> <code>cu2ru</code>.</p>
+<p>You may also export all of the above methods by writing: <code>use Lingua::CU ':all';</code></p>
+<a name='METHODS'></a><h1>METHODS</h1>
+<a name='arabicToCyrillic'></a><h2>arabicToCyrillic</h2>
+<p>Usage: <code>arabicToCyrillic( $number )</code></p>
+<p>Takes an Arabic number and returns the corresponding Cyrillic numeral. Croaks if <code>$number</code> is not numeric.</p>
+<p>Example: <code>arabicToCyrillic ( 121 )</code> returns <code>рк҃а</code>.</p>
+<a name='cyrillicToArabic'></a><h2>cyrillicToArabic</h2>
+<p>Usage: <code>cyrillicToArabic( $numeral )</code></p>
+<p>Takes a Cyrillic numeral and returns the corresponding Arabic number. Carps if <code>$numeral</code> is not a well-formatted Slavonic number.</p>
+<p>Example: <code>cyrillicToArabic(&quot;рк҃а&quot;)</code> returns <code>121</code>.</p>
+<a name='resolve'></a><h2>resolve</h2>
+<p>Usage: <code>resolve( $word )</code></p>
+<p>Takes a word that is written with a titlo or lettered titlo (as an abbreviation or <i>nomen sacrum</i>) and writes it out in full, resolving the abbreviation.</p>
+<p>Bugs: correct placement of stress marks and capitalization are not guaranteed. Titlo resolution relies on a list that can still be improved.</p>
+<p>Warning: the Slavonic word <b>сн҃а</b> could both be an abbreviation for Сы́на and a numeral (251). Thus,
+<code>resolve('сн҃а')</code> will return <code>Сы́на</code> but <code>cyrillicToArabic('сн҃а')</code> will return <code>251</code>.</p>
+<a name='cu2ru'></a><h2>cu2ru</h2>
+<p>Usage: <code>cu2ru( $text, [modernrules = 0, noaccents = 0])</code></p>
+<p>Takes well-formatted Church Slavonic <code>$text</code> and transforms it into Russian (civil) orthography. The following operations are performed:</p>
+<ul>
+<li><a name='Titli and lettered titli are resolved'></a>Titli and lettered titli are resolved</li>
+<li><a name='Cyrillic numerals are resolved to Arabic numbers (but see note above concerning сн҃а)'></a>Cyrillic numerals are resolved to Arabic numbers (but see note above concerning <b>сн҃а</b>)</li>
+<li><a name='Stress marks are transformed to the acute accent (U+0301) and all other diacritical marks are removed'></a>Stress marks are transformed to the acute accent (U+0301) and all other diacritical marks are removed</li>
+<li><a name='Letters that do not occur in Russian are transformed into their Russian analogs (e.g., ѧ is transformed to я)'></a>Letters that do not occur in Russian are transformed into their Russian analogs (e.g., ѧ is transformed to я)</li>
+<li><a name='Some spelling is normalized to agree with common Russian rules (e.g., шы is transformed to ши)'></a>Some spelling is normalized to agree with common Russian rules (e.g., шы is transformed to ши)</li>
+<li><a name='If optional parameter noaccents is not zero, all stress marks are removed; otherwise, stress indications remain in the text, but only as the acute accent (U+0301)'></a>If optional parameter <code>noaccents</code> is not zero, all stress marks are removed; otherwise,
+stress indications remain in the text, but only as the acute accent (U+0301)</li>
+<li><a name='If optional parameter modernrules is not zero, the text is further simplified into modern Russian orthography (that means that і is resolved to и, ѣ is resolved to е, and trailing ъ is removed); otherwise, traditional (pre-1918) orthography is assumed'></a>If optional parameter <code>modernrules</code> is not zero, the text is further simplified into modern Russian orthography
+(that means that і is resolved to и, ѣ is resolved to е, and trailing ъ is removed); otherwise, traditional (pre-1918) orthography is assumed</li>
+</ul>
+<a name='SEE ALSO'></a><h1>SEE ALSO</h1>
+<p>This software is part of the Ponomar Project (see <a href='http://www.ponomar.net/' target='_blank'>www.ponomar.net</a>​).</p>
+<p>Be sure to read the <i>Roadmap for Church Slavonic Typography in the Unicode Standard</i> and to download the
+Unicode-compatible Hirmos Ponomar font.</p>
+<a name='AUTHOR'></a><h1>AUTHOR</h1>
+<p>Aleksandr Andreev &lt;<a href='&#109;&#97;ilto&#58;a%6Ceks&#37;61&#110;%64r&#46;&#97;&#37;6Ed&#114;e&#101;%&#55;6&#64;g%&#54;Da&#105;l&#46;c&#111;m'>&#97;&#108;eksandr&#46;a&#110;dree&#118;&#64;gm&#97;il&#46;&#99;om</a>&gt;</p>
+<a name='COPYRIGHT AND LICENSE'></a><h1>COPYRIGHT AND LICENSE</h1>
+<p>Copyright (C) 2012, 2013 by Aleksandr Andreev</p>
+<p>This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.14.2 or,
+at your option, any later version of Perl you may have available.</p>
+</div></body></html>
