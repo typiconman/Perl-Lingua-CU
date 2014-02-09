@@ -27,7 +27,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 my %definitions;
 my @ones = ('', qw/а в г д є ѕ з и ѳ/);
 my @tens = ('', qw/і к л м н ѯ о п ч/);
@@ -40,7 +40,8 @@ my %resolver = (
 	chr(0x0404)	=> "Е", # capital wide Est
 	chr(0x0454)	=> "е", # lowercase wide est
 	chr(0x0455)	=> "з", # lowercase zelo
-	chr(0x0457)	=> chr(0x0456),	# double-dotted i
+	chr(0x0456) . chr(0x0308)	=> chr(0x0456),	# double-dotted i
+	chr(0x0457) 	=> chr(0x0456),
 	chr(0x0460)	=> "О",	# capital Omega
 	chr(0x0461)	=> "о",	# lowercase omega
 	chr(0x0466)	=> "Я", # capital small Yus
@@ -53,10 +54,8 @@ my %resolver = (
 	chr(0x0473)	=> "ф", # lowercase theta
 	chr(0x0474)	=> "В", # izhitsa
 	chr(0x0475)	=> "в",	# izhitsa
-	chr(0x0476)	=> "И",	# capital izhistsa with kendema
-	chr(0x0477)	=> "и", # lowercase Izhitsa with kendema
-	chr(0x0478)	=> "У", # Ou
-	chr(0x0479)	=> "у", # ou
+	chr(0x041E) . chr(0x0443)	=> "У", # Ou
+	chr(0x043E) . chr(0x0443)	=> "у", # ou
 	chr(0x047A)	=> "О",	# wide O
 	chr(0x047B)	=> "о", # wide o
 	chr(0x047C)	=> "О", # omega with great apostrophe
@@ -190,9 +189,11 @@ sub cu2ru {
 	# RESOLVE ALL FORMS OF IZHITSA WITH ACCENT
 	$text =~ s/\x{0474}\x{0301}/И\x{0301}/g;
 	$text =~ s/\x{0475}\x{0301}/и\x{0301}/g;
+	$text =~ s/\x{0474}\x{030F}/И/g;
+	$text =~ s/\x{0475}\x{030F}/и/g;
 
 	# REMOVE ALL VARIATION SELECTORS
-	$text =~ s/\x{FE00}|\x{FE01}//g;
+	$text =~ s/[\x{FE00}\x{FE01}]//g;
 
 	# convert semicolon to question mark
 	$text =~ s/;/\?/g;
@@ -452,7 +453,7 @@ __DATA__
 гдⷭ҇а	Го́спода
 гдⷭ҇ви	Го́сподеви
 гдⷭ҇е	Го́споде
-гдⷭ҇и.	Го́споди
+гдⷭ҇и	Го́споди
 Гдⷭ҇	Го́спод
 гдⷭ҇и́н	господи́н
 гдⷭ҇и	Го́споди
@@ -712,7 +713,7 @@ __DATA__
 Сн҃ѣ	Сы́нѣ
 сп҃са.	Cпа́са
 сп҃са	спаса
-сп҃се.	Cпа́се
+сп҃се	Cпа́се
 сп҃сѐ	спасѐ
 сп҃се́	спасе́
 сп҃сє́	спасє́
