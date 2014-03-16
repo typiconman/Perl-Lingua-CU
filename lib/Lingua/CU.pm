@@ -377,7 +377,7 @@ Aleksandr Andreev <aleksandr.andreev@gmail.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2012, 2013 by Aleksandr Andreev
+Copyright (C) 2012-2014 by Aleksandr Andreev
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.14.2 or,

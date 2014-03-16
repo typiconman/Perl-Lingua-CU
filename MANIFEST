@@ -4,3 +4,4 @@ MANIFEST
 README
 t/Lingua-CU.t
 lib/Lingua/CU.pm
+lib/Lingua/CU/Collate.pm
