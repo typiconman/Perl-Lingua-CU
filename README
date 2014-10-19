@@ -1,4 +1,4 @@
-Lingua-CU version 0.01
+Lingua-CU version 0.02
 ======================
 
 Lingua::CU is a Perl module for working with Church Slavonic text.
@@ -32,10 +32,11 @@ To install this module type the following:
 DEPENDENCIES
 
 This program requires Unicode support (Perl 5.8.1 or higher for sure)
+Unicode::Collate version 1.04 or newer is required (DUCET version 6.3.0)
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2012, 2013 by Aleksandr Andreev <aleksandr.andreev@gmail.com>
+Copyright (C) 2012-2014 by Aleksandr Andreev <aleksandr.andreev@gmail.com>
 
 This program is part of the Ponomar Project and uses certain components
 development by Ponomar Project coauthors Yuri Shardt and Nikita Simmons.
