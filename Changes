@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::CU.
 
+0.03 Tue Feb 10 16:19:40 2015
+	- updated Collation algorithm based on changes in Roadmap
+
 0.02  Sun Oct 19 14:51:30 2014 
 	- updated Collation algorithm to support Unicode 8.0 upcoming updates
 

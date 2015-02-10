@@ -27,7 +27,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 my %definitions;
 my @ones = ('', qw/а в г д є ѕ з и ѳ/);
 my @tens = ('', qw/і к л м н ѯ о п ч/);
