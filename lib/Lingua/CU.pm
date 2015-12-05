@@ -18,7 +18,7 @@ our @ISA = qw(Exporter);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(
-	arabicToCyrillic cyrillicToArabic resolve cu2ru
+	arabicToCyrillic cyrillicToArabic resolve cu2ru ucs2unicode hip2unicode
 ) ] );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
@@ -27,11 +27,36 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 my %definitions;
-my @ones = ('', qw/а в г д є ѕ з и ѳ/);
-my @tens = ('', qw/і к л м н ѯ о п ч/);
-my @hundreds = ('', qw/р с т у ф х ѱ ѿ ц/);
+my %digits = (
+	'а' => 1,
+	'в' => 2,
+	'г' => 3,
+	'д' => 4,
+	'є' => 5,
+	'ѕ' => 6,
+	'з' => 7,
+	'и' => 8,
+	'ѳ' => 9, 
+	'і' => 10,
+	'к' => 20,
+	'л' => 30,
+	'м' => 40,
+	'н' => 50,
+	'ѯ' => 60,
+	'о' => 70,
+	'п' => 80,
+	'ч' => 90, 
+	'р' => 100,
+	'с' => 200,
+	'т' => 300,
+	'у' => 400,
+	'ф' => 500,
+	'х' => 600,
+	'ѱ' => 700,
+	'ѿ' => 800,
+	'ц' => 900);
 my @letters = qw/а б в г д е є ж ѕ з ꙁ и і ї й к л м н о ѻ п р с т у ꙋ ф х ѡ ѿ ѽ ꙍ ц ч ш щ ъ ы ь ѣ ю ѧ ѫ ꙗ ѯ ѱ ѳ ѵ ѷ/;
 my @LETTERS = qw/А Б В Г Д Е Є Ж Ѕ З Ꙁ И І Ї Й К Л М Н О Ѻ П Р С Т У Ꙋ Ф Х Ѡ Ѿ Ѽ Ꙍ Ц Ч Ш Щ Ъ Ы Ь Ѣ Ю Ѧ Ѫ Ꙗ Ѯ Ѱ Ѳ Ѵ Ѷ/;
 
@@ -127,20 +152,31 @@ sub arabicToCyrillic ($) {
 
 	# check if $number is in fact numeric
 	unless ($number =~ /^\d+$/) {
-		Carp::carp (__PACKAGE__ . "::arabicToCyrillic ($number) - Error: $number is not a valid Arabic number");
+		Carp::carp (__PACKAGE__ . "::arabicToCyrillic ($number) - Error: $number is not a valid ASCII digit");
 	}
-	my @numerals = (\@ones, \@tens, \@hundreds);
 
-	my $size = 10 ** (length($number) - 1);
 	my $output = "";
-
-	for (my $key = 0; $key < length $number; $key++) {
-		$output .= "҂" if (log ($size / 10 ** $key) / log (10) > 2);
-		$output .= $numerals[sprintf(q{%.0f}, log ($size / 10 ** $key) / log (10)) % 3][substr($number, $key, 1)];
+	my %numerals = reverse %digits;
+	if ($number >= 1000) {
+		$output .= "҂";
+		$output .= arabicToCyrillic($number / 1000);
+		$output .= ' ' if($number > 10000 && ($number - 10000) % 1000 != 0);
 	}
-
-	# reverse the teens if we need to
-	$output =~ s/і(҂?)([авгдєѕзиѳ])/$2$1і/g;
+	
+	my $num = $number % 1000;
+	foreach my $i (sort { $a <=> $b } keys %numerals) {
+		if ($num < 20 && $num > 10) {
+			$num -= 10;
+			$output .= arabicToCyrillic($num);
+			$otuput .= $numerals{10};
+			last;
+		}
+		
+		if ($num <= $i) {
+			$num -= $i;
+			$output .= $numerals{$i};
+		}
+	}
 
 	# add the titlo character
 	my $pos = length ($output) - 2 * ($output =~ tr/҂//);
