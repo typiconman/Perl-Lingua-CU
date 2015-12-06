@@ -1,6 +1,6 @@
 package Lingua::CU;
 
-#require 5.014002;
+require 5.014002;
 use strict;
 use warnings;
 use utf8;
@@ -18,7 +18,7 @@ our @ISA = qw(Exporter);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(
-	arabicToCyrillic cyrillicToArabic resolve cu2ru ucs2unicode hip2unicode
+	asciiToCyrillic cyrillicToAscii resolve cu2ru hip2unicode
 ) ] );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
@@ -30,6 +30,7 @@ our @EXPORT = qw(
 our $VERSION = '0.04';
 my %definitions;
 my %digits = (
+	'' => 0,
 	'а' => 1,
 	'в' => 2,
 	'г' => 3,
@@ -113,7 +114,7 @@ END {
 }
 
 # Preloaded methods go here.
-sub resolve ($) {
+sub resolve {
 	my $text = shift;
 
 	my $what = join("|", keys %definitions);
@@ -121,74 +122,96 @@ sub resolve ($) {
 	return $text;
 }
 
-sub cyrillicToArabic ($) {
+sub cyrillicToAscii {
 	my $number = shift;
 
-	my %oDigits = map { $ones[$_] => $_ } 0..9;
-	my %tDigits = map { $tens[$_] => 10 * $_ } 0..9;
-	my %hDigits = map { $hundreds[$_] => 100 * $_ } 0..9;
-	my %digits = (%oDigits, %tDigits, %hDigits);
-
-	my $o = join ('|', keys %oDigits);
-	my $t = join ('|', keys %tDigits);
-	my $h = join ('|', keys %hDigits);
+	my $o = join ('|', grep { $digits{$_} < 10 } keys %digits);
+	my $t = join ('|', grep { $digits{$_} >= 10 && $digits{$_} < 100 } keys %digits);
+	my $h = join ('|', grep { $digits{$_} >= 100 } keys %digits);
 
 	# remove all occurences of titlo
 	$number =~ s/\x{0483}//g;
+	my $result = 0;
+	if (index($number, " ") != -1) {
+		my $umpteen = substr($number, 0, index($number, " "));
+		$umpteen =~ s/҂//g;
+		if ($umpteen =~ /^([$h]?)([клмнѯопч]?)([$o]?)$/) {
+			$umpteen =~ s/([$h]?)([клмнѯопч]?)([$o]?)/$digits{$1} + $digits{$2} + $digits{$3}/e;
+		} elsif ($umpteen =~ /^([$h]?)([$o]?)(і)$/) {
+			$umpteen =~ s/([$h]?)([$o]?)(і)/$digits{$1} + $digits{$2} + $digits{$3}/e;
+		} else {
+			Carp::carp (__PACKAGE__ . "::cyrillicToAscii ($number) - Error: $number is not a valid Cyrillic number");
+		}
+		$result += $umpteen * 1000;
+		$number = substr($number, index($number, " ") + 1);
+	}
 
 	if ($number =~ /^(?:҂([$h]))*(?:҂([$t]))*(?:҂([$o]))*([$h]?)([клмнѯопч]?)([$o]?)$/) {
 		$number =~ s/(?:҂([$h]))*(?:҂([$t]))*(?:҂([$o]))*([$h]?)([клмнѯопч]?)([$o]?)/1000 * ($digits{$1||''} + $digits{$2||''} + $digits{$3||''}) + $digits{$4} + $digits{$5} + $digits{$6}/e;
 	} elsif ($number =~ /^(?:҂([$h]))*(?:҂([$t]))*(?:҂([$o]))*([$h]?)([$o]?)(і)$/) {
 		$number =~ s/(?:҂([$h]))*(?:҂([$t]))*(?:҂([$o]))*([$h]?)([$o]?)(і)/1000 * ($digits{$1||''} + $digits{$2||''} + $digits{$3||''}) + $digits{$4} + $digits{$5} + $digits{$6}/e;
 	} else {
-		Carp::carp (__PACKAGE__ . "::cyrillicToArabic ($number) - Error: $number is not a valid Cyrillic number");
+		Carp::carp (__PACKAGE__ . "::cyrillicToAscii ($number) - Error: $number is not a valid Cyrillic number");
 	}
-	return $number;
+	$result += $number; #$ * 1000 ** (scalar(@parts) - 1 - $i);
+	return $result;
 
 }
 
-sub arabicToCyrillic ($) {
+sub asciiToCyrillic {
 	my $number = shift;
+	my $omitTitlo = shift;
 
 	# check if $number is in fact numeric
-	unless ($number =~ /^\d+$/) {
-		Carp::carp (__PACKAGE__ . "::arabicToCyrillic ($number) - Error: $number is not a valid ASCII digit");
+	unless ($number =~ /^[+-]?\d+(\.\d+)?$/) {
+		Carp::carp (__PACKAGE__ . "::asciiToCyrillic ($number) - Error: $number is not a valid ASCII digit");
 	}
 
 	my $output = "";
 	my %numerals = reverse %digits;
 	if ($number >= 1000) {
 		$output .= "҂";
-		$output .= arabicToCyrillic($number / 1000);
+		$output .= asciiToCyrillic($number / 1000, 1);
 		$output .= ' ' if($number > 10000 && ($number - 10000) % 1000 != 0);
+		$omitTitlo = $number % 1000 == 0;
 	}
 	
 	my $num = $number % 1000;
-	foreach my $i (sort { $a <=> $b } keys %numerals) {
+	foreach my $i (sort { $b <=> $a } keys %numerals) {
+		last if ($num <= 0);
 		if ($num < 20 && $num > 10) {
 			$num -= 10;
-			$output .= arabicToCyrillic($num);
-			$otuput .= $numerals{10};
+			$output .= asciiToCyrillic($num, 1) . $numerals{10};
 			last;
 		}
-		
-		if ($num <= $i) {
+
+		if ($i <= $num) {
 			$num -= $i;
 			$output .= $numerals{$i};
 		}
 	}
 
 	# add the titlo character
-	my $pos = length ($output) - 2 * ($output =~ tr/҂//);
-	return $output unless $pos;
-	if ($pos == 1) {
-		return $output . chr(0x0483);
-	} else {
-		$output =~ s/(.+)([авгдєѕзиѳіклмнѯопч])/$1\x{0483}$2/;
-		return $output;
+	unless ($omitTitlo) {
+		if (length($output) == 1) {
+			$output .= chr(0x0483);
+		} elsif (length($output) == 2) {
+			if ($number > 800 && $number < 900) {
+				$output .= chr(0x0483);
+			} else {
+				substr($output, 1, 0, chr(0x0483));
+			}
+		} else {
+			if (index($output, " ") == length($output) - 2) {
+				$output .= chr(0x0483);
+			} else {
+				substr($output, length($output) - 1, 0, chr(0x0483));
+			}
+		}
 	}
+	return $output;
 }
-
+	
 sub cu2ru {
 	my $text = shift;
 	my $params = shift; # params: noaccent, modernrules
@@ -236,12 +259,12 @@ sub cu2ru {
 
 	### AT THIS POINT, ATTEMPT TO RESOLVE ANY NUMERALS
 	# XXX: WE CAN ONLY CONVERT IN THIS WAY NUMERALS BELOW ONE THOUSAND
-	my $who = join ("|", (@ones, @tens, @hundreds));
+	my $who = join ("|", keys %digits);
 
-	$text =~ s/([$who][$who][\x{0483}][$who])/&cyrillicToArabic($1)/ge;
-	$text =~ s/([$who][\x{0483}][$who])/&cyrillicToArabic($1)/ge;
-	$text =~ s/([$who][$who][\x{0483}])/&cyrillicToArabic($1)/ge;
-	$text =~ s/([$who][\x{0483}])/&cyrillicToArabic($1)/ge;
+	$text =~ s/([$who][$who][\x{0483}][$who])/&cyrillicToAscii($1)/ge;
+	$text =~ s/([$who][\x{0483}][$who])/&cyrillicToAscii($1)/ge;
+	$text =~ s/([$who][$who][\x{0483}])/&cyrillicToAscii($1)/ge;
+	$text =~ s/([$who][\x{0483}])/&cyrillicToAscii($1)/ge;
 
 	$who = join("|", keys %resolver);
 	## STEP SIX: RESOLVE LETTERS PECULIAR TO CHURCH SLAVONIC
@@ -280,6 +303,15 @@ sub cu2ru {
 	return $text;
 }
 
+sub hip2unicode {
+	my $text = shift;
+	my $script = shift || 'Cyrs';
+	use Lingua::CU::Scripts::HIP;
+	return $script eq 'Cyrs' ? Lingua::CU::Scripts::HIP::convert($text) :
+		$script eq 'Cyrl' ? Lingua::CU::Scripts::HIP::convert_Cyrl($text) :
+		$script eq 'Latn' ? Lingua::CU::Scripts::HIP::convert_Latn($text) : $text;
+}
+
 1;
 
 =pod
@@ -293,8 +325,8 @@ Lingua::CU - Perl extension for working with Church Slavonic text in Unicode
 =head1 SYNOPSIS
 
   use Lingua::CU ':all';
-  arabicToCyrillic (21); # returns к҃а
-  cyrillicToArabic ("к҃а"); # returns 21
+  asciiToCyrillic (21); # returns к҃а
+  cyrillicToAscii ("к҃а"); # returns 21
   resolve ("ст҃ъ"); # returns свѧ́тъ
   cu2ru ("ст҃ъ"); # returns свя́тъ
   cu2ru ("ст҃ъ", { noaccents => 1, modernrules => 1 }); # returns свят
@@ -309,26 +341,24 @@ It includes the following capabilities:
 
 =item Resolve Church Slavonic abbreviations and I<nomina sacra>
 
-=item Convert between Cyrillic and Arabic numerals
-
-=item Perform basic conversions between the Julian and Gregorian calendars (TODO)
+=item Convert between Cyrillic numerals and Ascii digits
 
 =item Convert Church Slavonic text to Russian characters (both traditional and reformed orthography)
 
-=item Romanize (transliterate to Latin) Church Slavonic text using various systems (TODO)
+=item Romanize (transliterate to Latin) Church Slavonic text using various systems
 
-=item Convert between Unicode and legacy UCS and HIP encodings (TODO)
+=item Convert between Unicode and legacy UCS and HIP encodings
 
-=item Sort Church Slavonic words using a tailoring of the DUCET (TODO)
+=item Sort Church Slavonic words using a tailoring of the DUCET
 
 =item Perform stemming of Church Slavonic words (TODO)
 
 =back
 
 All text supplied to this library must be encoded in UTF-8 and, unless otherwise specified, is assumed to be
-in Unicode. For more on Church Slavonic using Unicode, please see the paper
-I<Roadmap for Church Slavonic Typography in the Unicode Standard> available at 
-http://www.ponomar.net/.
+in Unicode. For more on Church Slavonic using Unicode, please see
+Unicode Technical Note #41, I<Church Slavonic Typography in Unicode>
+available at L<http://www.unicode.org/notes/tn41/>.
 
 This program is ALPHA STAGE SOFTWARE and is provided with ABSOLUTELY NO WARRANTY of any kind,
 express or implied, not even the implied warranties of merchantability, fitness for a purpose, or non-infringement.
@@ -337,44 +367,50 @@ express or implied, not even the implied warranties of merchantability, fitness 
 
 No methods are exported by default.
 
-The following methods may be exported if specified explicitly: C<arabicToCyrillic> C<cyrillicToArabic> C<resolve> C<cu2ru>.
+The following methods may be exported if specified explicitly: 
+C<asciiToCyrillic> C<cyrillicToAscii> C<resolve> C<cu2ru>.
 
 You may also export all of the above methods by writing: C<use Lingua::CU ':all';>.
 
 =head1 METHODS
 
-=head2 arabicToCyrillic
+=head2 asciiToCyrillic
 
-Usage: C<arabicToCyrillic( $number )>
+Usage: C<asciiToCyrillic( $number )>
 
-Takes an Arabic number and returns the corresponding Cyrillic numeral. Croaks if C<$number> is not numeric.
+Takes a number in ASCII digits and returns the corresponding Cyrillic numeral. 
+Croaks if C<$number> is not numeric.
 
-Example: C<arabicToCyrillic ( 121 )> returns C<рк҃а>.
+Example: C<asciiToCyrillic ( 121 )> returns C<рк҃а>.
 
-=head2 cyrillicToArabic
+=head2 cyrillicToAscii
 
-Usage: C<cyrillicToArabic( $numeral )>
+Usage: C<cyrillicToAscii( $numeral )>
 
-Takes a Cyrillic numeral and returns the corresponding Arabic number. Carps if C<$numeral> is not a well-formatted Slavonic number.
+Takes a Cyrillic numeral and returns the corresponding ASCII digits.
+Carps if C<$numeral> is not a well-formatted Slavonic number.
 
-Example: C<cyrillicToArabic("рк҃а")> returns C<121>.
+Example: C<cyrillicToAscii("рк҃а")> returns C<121>.
 
 =head2 resolve
 
 Usage: C<resolve( $word )>
 
-Takes a word that is written with a titlo or lettered titlo (as an abbreviation or I<nomen sacrum>) and writes it out in full, resolving the abbreviation.
+Takes a word that is written with a titlo or lettered titlo (as an abbreviation or I<nomen sacrum>) 
+and writes it out in full, resolving the abbreviation.
 
-Bugs: correct placement of stress marks and capitalization are not guaranteed. Titlo resolution relies on a list that can still be improved.
+Bugs: correct placement of stress marks and capitalization are not guaranteed. 
+Titlo resolution relies on a list that can still be improved.
 
 Warning: the Slavonic word B<сн҃а> could both be an abbreviation for Сы́на and a numeral (251). Thus,
-C<resolve('сн҃а')> will return C<Сы́на> but C<cyrillicToArabic('сн҃а')> will return C<251>.
+C<resolve('сн҃а')> will return C<Сы́на> but C<cyrillicToAscii('сн҃а')> will return C<251>.
 
 =head2 cu2ru
 
 Usage: C<cu2ru( $text, [modernrules = 0, noaccents = 0, skiptitlos = 0])>
 
-Takes well-formatted Church Slavonic C<$text> and transforms it into Russian (civil) orthography. The following operations are performed: 
+Takes well-formatted Church Slavonic C<$text> and transforms it into Russian (civil) orthography.
+The following operations are performed: 
 
 =over 4
 
@@ -382,7 +418,7 @@ Takes well-formatted Church Slavonic C<$text> and transforms it into Russian (ci
 this is only useful if you are converting text known to have no abbreviations and wish to save time or
 if you are writing your own titlo processor for non standard text like text with XML markup or pre-Nikonian editions)
 
-=item Cyrillic numerals are resolved to Arabic numbers (but see note above concerning B<сн҃а>)
+=item Cyrillic numerals are resolved to Ascii numbers (but see note above concerning B<сн҃а>)
 
 =item Stress marks are transformed to the acute accent (U+0301) and all other diacritical marks are removed
 
@@ -393,17 +429,35 @@ if you are writing your own titlo processor for non standard text like text with
 =item If optional parameter C<noaccents> is not zero, all stress marks are removed; otherwise, 
 stress indications remain in the text, but only as the acute accent (U+0301)
 
-=item If optional parameter C<modernrules> is not zero, the text is further simplified into modern Russian orthography 
-(that means that і is resolved to и, ѣ is resolved to е, and trailing ъ is removed); otherwise, traditional (pre-1918) orthography is assumed
+=item If optional parameter C<modernrules> is not zero, the text is further simplified
+into modern Russian orthography (that means that і is resolved to и, ѣ is resolved to е,
+and trailing ъ is removed); otherwise, traditional (pre-1918) orthography is assumed.
 
 =back
+
+=head2 hip2unicode
+
+Usage: C<hip2unicode( $text, [$script] )>
+
+Takes C<$text> encoded in the legacy HyperInvariant Presentation (HIP)
+and returns its Unicode representation.
+For more on HIP, see L<http://orthlib.ru/hip/hip-9.html> (in Russian).
+
+Optional parameter C<$script> is an ISO 15924 script code specifying the script
+of the HIP file (I<Cyrs> -- Slavonic, I<Cyrl> -- Civil Cyrillic, I<Glag> -- Glagolitic,
+I<Grek> -- Greek). If C<$script> is not specified, I<Cyrs> is assumed.
+
+Text in C<$text> must be encoded in UTF-8.
+
+For converting entire files, see the command line I<hip2unicode> script provided by
+B<Lingua::CU::Scripts>.
 
 =head1 SEE ALSO
 
 This software is part of the Ponomar Project (see http://www.ponomar.net/​).
 
-Be sure to read the I<Roadmap for Church Slavonic Typography in the Unicode Standard> and to download the 
-Unicode-compatible Hirmos Ponomar font.
+Be sure to read Unicode Technical Note #21 I<Church Slavonic Typography in the Unicode Standard> 
+and to download the Unicode-compatible Ponomar Unicode font.
 
 Be sure to read as well C<perluniintro> and C<perllocale> in the Perl manual.
 
@@ -413,7 +467,7 @@ Aleksandr Andreev <aleksandr.andreev@gmail.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2012-2014 by Aleksandr Andreev
+Copyright (C) 2012-2015 by Aleksandr Andreev
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.14.2 or,

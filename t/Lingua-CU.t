@@ -9,8 +9,8 @@ use strict;
 use warnings;
 use utf8;
 
-use Test::More tests => 11;
-BEGIN { use_ok('Lingua::CU', qw(cyrillicToArabic arabicToCyrillic resolve cu2ru)); use_ok('Lingua::CU::Collate', '1.04'); };
+use Test::More tests => 12;
+BEGIN { use_ok('Lingua::CU', qw(cyrillicToAscii asciiToCyrillic resolve cu2ru hip2unicode)); use_ok('Lingua::CU::Collate', '1.04'); };
 
 #########################
 
@@ -25,10 +25,10 @@ BEGIN { use_ok('Lingua::CU', qw(cyrillicToArabic arabicToCyrillic resolve cu2ru)
 # test if numeral conversion is sane
 my @input;
 my @output;
-for (my $i = 0; $i < 1000; $i++) {
+for (my $i = 0; $i < 9999; $i++) {
 	# generate random number between 1 and 9999
 	push (@input, int(rand(9998)) + 1);
-	push (@output, cyrillicToArabic(arabicToCyrillic($input[$i])));
+	push (@output, cyrillicToAscii(asciiToCyrillic($input[$i])));
 }
 
 is_deeply (\@output, \@input, "Numeral conversion is sane");
@@ -43,6 +43,8 @@ is (cu2ru ("ст҃ъ", { noaccents => 1 }), "святъ", "noaccents option is h
 diag("noaccents option is honored");
 is (cu2ru ("ст҃ъ", { noaccents => 1, modernrules => 1 }), "свят", "modernrules option is honored");
 diag("modernrules option is honored");
+is (hip2unicode("Твоя` побjьди'тельная десни'ца, бг~олjь'пнw въ крjь'пости просла'вися."), "Твоѧ̀ побѣди́тельнаѧ десни́ца, бг҃олѣ́пнѡ въ крѣ́пости просла́висѧ.", "HIP to Unicode conversion works");
+diag("HIP to Unicode conversion works");
 
 # test if collation works
 use List::Util 'shuffle';
@@ -66,7 +68,6 @@ __DATA__
 а҆вїда̀
 а҆́гг҃лы
 а҆́гг҃льскагѡ
-а҆́гница
 а҆́гнца
 а҆́зъ
 а҆кѵ́лѣ

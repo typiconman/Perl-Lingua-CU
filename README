@@ -1,18 +1,18 @@
-Lingua-CU version 0.02
+Lingua-CU version 0.04
 ======================
 
 Lingua::CU is a Perl module for working with Church Slavonic text.
 It provides the following features:
 
 * Resolve Church Slavonic abbreviations and _nomina sacra_
-* Convert between Cyrillic and Arabic numerals
-* Perform basic conversions between the Julian and Gregorian calendars
+* Convert between Cyrillic numerals and ASCII digits
 * Convert Church Slavonic text to Russian characters
 * Romanize (transliterate to Latin) Church Slavonic text
+* Convert between Cyrillic and Glagolitic text
 * Convert between Unicode and legacy UCS and HIP encodings
 * Sort Church Slavonic words using a tailoring of the DUCET
 * Perform stemming of Church Slavonic words (not implemented yet!)
-* Perform hyphenation of Church Slavonic words (experimental!)
+* Perform hyphenation of Church Slavonic words (not implemented yet!)
 
 This program is ALPHA-PHASE software and is thus provided with ABSOLUTELY NO WARRANTY,
 not even the implied warranties of merchantability or fitness for a purpose.
@@ -36,7 +36,7 @@ Unicode::Collate version 1.04 or newer is required (DUCET version 6.3.0)
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2012-2014 by Aleksandr Andreev <aleksandr.andreev@gmail.com>
+Copyright (C) 2012-2015 by Aleksandr Andreev <aleksandr.andreev@gmail.com>
 
 This program is part of the Ponomar Project and uses certain components
 development by Ponomar Project coauthors Yuri Shardt and Nikita Simmons.

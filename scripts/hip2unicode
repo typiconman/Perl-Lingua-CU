@@ -1,0 +1,270 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use utf8;
+use Encode;
+
+ use lib "/home/sasha/Documents/API/Perl-Lingua-CU/lib/";
+use Lingua::CU::Scripts::HIP;
+use Getopt::Long;
+use Pod::Usage;
+use File::Basename;
+
+our(%opts);
+GetOptions(\%opts, 
+	'encoding|c=s',
+	'format|f=s',
+	'help|h');
+
+unless ($ARGV[0] || $opts{'help'})
+{
+	pod2usage(1);
+	exit;
+}
+
+if ($opts{'help'})
+{
+	pod2usage(-verbose => 2, -noperldoc => 1);
+	exit;
+}
+
+my $encoding = $opts{'encoding'} || "UTF-8";
+if ($encoding) {
+	my %list = map { $_ => 1 } Encode->encodings(":all");
+	$list{"UTF-8"} = 1; # hack
+	unless (exists $list{$encoding}) {
+		print "Error: Encoding $encoding is not defined.$/";
+		print "Possible encodings are:$/";
+		print join(", ", keys %list);
+		print "$/";
+		exit;
+	}
+}
+
+my $opt_f = $opts{"format"} || "txt";
+# formatting setup
+my %format_chars_html = (
+	"%<"  => "<SPAN Class=\"red\">",
+	"%>"  => "</SPAN>",
+	"%["  => "<SPAN Class=\"wide\">",
+	"%]"  => "</SPAN>",
+	"%("  => "<SMALL>",
+	"%)"  => "</SMALL>");
+
+my %format_chars_xml = (
+	"%<"  => "<RED>",
+	"%>"  => "</RED>",
+	"%["  => "<WIDE>",
+	"%]"  => "</WIDE>",
+	"%("  => "<SMALL>",
+	"%)"  => "</SMALL>");
+
+my %format_chars_text = (
+	"%<"  => "",
+	"%>"  => "",
+	"%["  => "",
+	"%]"  => "",
+	"%("  => "",
+	"%)"  => ""); # I.E., all formatting information is lost
+
+my %format_chars_latex = (
+	"%<"  => "\\textcolor{red}{",
+	"%>"  => "}",
+	"%["  => "{\\emph{", # user should override emph to do what he would like
+	"%]"  => "}}",
+	"%("  => "{\\scriptsize{",
+	"%)"  => "}}",
+	"%"   => "\\%",
+	); # TODO: must escape all other occurences of %
+my $infile = $ARGV[0];
+unless (-e $infile) {
+	print "Error: unable to find $infile.$/";
+	exit;
+}
+
+my ($name, $path, $suffix) = fileparse($infile, qr/\.[^.]*/);
+
+# set up file IO
+my $newline = $opt_f eq "html" ? "<BR>$/" : $opt_f eq "tex" ? $/ . $/ : $opt_f eq "xml" ? "<BR/>$/" : $/;
+my $outfile = $path . $name;
+$outfile .= $opt_f eq "html" ? ".html" : $opt_f eq "tex" ? ".tex" : $opt_f eq "xml" ? ".xml" : ".txt";
+
+my %format_dict = $opt_f eq "html" ? %format_chars_html : $opt_f eq "tex" ? %format_chars_latex : $opt_f eq "xml" ? %format_chars_xml : %format_chars_text;
+my @Separators = qw/<::лат> <::рус> <::слав> <::греч> <::глаг>/;
+my $rejex      = join("|", @Separators);
+my $mode = 2; # default mode is Slavonic
+my @Starts = $opt_f eq "html" ? ("<SPAN Class=\"civ\">", "<SPAN Class=\"civ\">", "<SPAN Class=\"slv\">", "<SPAN Class=\"greek\">", "<SPAN Class=\"glag\">") :
+	$opt_f eq "tex" ? ("", "", "{\\slv ", "", "") : 
+	$opt_f eq "xml" ? ("<CIVIL>", "<CIVIL>", "<SLAVONIC>", "<CIVIL>", "<CIVIL>") : ("", "", "", "", "");
+my @Stops  = $opt_f eq "html" ? (("</SPAN>") x 5, "") : $opt_f eq "tex" ? ("", "", "}", "", "", "") : 
+	$opt_f eq "xml" ? ("</CIVIL>", "</CIVIL>", "</SLAVONIC>", "</CIVIL>", "</CIVIL>", "") : ("") x 6;
+
+my $header = $opt_f eq "html" ? qq(<HTML><HEAD><TITLE>$outfile</TITLE>
+<META Http-equiv="content-type" Content="text/html; charset=utf-8">
+<STYLE>
+.slv {
+	font-family: Ponomar Unicode;
+}
+.red {
+	color: red;
+}
+.wide {
+	letter-spacing: 0.2em;
+}
+.civ {
+	font-family: helvetica, verdana, arial, sans-serif;
+}
+.greek {
+	// specify greek to use here
+}
+.glag {
+	font-family: Menaion Unicode;
+}
+</STYLE>
+</HEAD><BODY>$/$/) : $opt_f eq "tex" ? qq(\\documentclass[12pt,a4paper]{article}\\usepackage{color}
+\\usepackage{xltxtra}\\newfontfamily{\\slv}{Ponomar Unicode}
+\\setmainfont[Mapping=tex-text]{Linux Libertine O}
+\\newcommand{\\comments}[1]{}
+\\begin{document}$/$/) :
+	$opt_f eq "xml" ? qq(<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="hip2utf8.xsl"?>
+<DOCUMENT>) : "";
+my $footer = $opt_f eq "html" ? qq($/</BODY></HTML>) : $opt_f eq "tex" ? qq($/\\end{document}) : $opt_f eq "xml" ? "<FOOTER/>$/</DOCUMENT>" : "";
+
+my $tic = time;
+my $lines = 0;
+print "Transcribing HIP file $infile to $outfile ...$/";
+
+open (INFILE, $infile) || die ("Cannot read from $infile: $!");
+	open (OUTFILE, ">:encoding(UTF-8)", $outfile) || die ("Cannot write to $outfile: $!");
+		print OUTFILE $header;
+
+		my $isINCOMMENT = 0;
+		while (<INFILE>) {
+			s/\r?\n//g;
+			$_= decode($encoding, $_);
+			my @parts = split(/($rejex)/);
+			OUTERLOOP:
+			foreach my $p (@parts) {
+				for (my $s = 0; $s < @Separators; $s++) {
+					if ($p eq $Separators[$s]) {
+						print OUTFILE $Stops[$mode];
+						$mode = $s;
+						print OUTFILE $Starts[$mode];
+						next OUTERLOOP;
+					} 
+				}
+
+				# STEP ZERO: REMOVE COMMENTS
+				if ($opt_f eq "tex") {
+					$p =~ s/\%{(.+)}/||$1||/g;
+				} elsif ($opt_f eq "html" || $opt_f eq "xml") {
+					$p =~ s/\%{(.+)}/<!-- $1 -->/g;
+					# we may have a comment spanning two or more lines
+					# in this, case convert the front
+					$p =~ s/\%{/<!-- /;
+					# set the comment flag
+					$isINCOMMENT = 1;
+					# check if we're in comment to convert the back
+					$p =~ s/}/-->/ if ($isINCOMMENT);
+					$isINCOMMENT = 0 if (index($p, "-->") != -1);
+				}
+
+				SWITCH: {
+					if ($mode == 0) {
+						$p = Lingua::CU::Scripts::HIP::convert_Latn($p);
+						last SWITCH;
+					}
+					if ($mode == 1) {
+						$p = Lingua::CU::Scripts::HIP::convert_Cyrl($p);
+						last SWITCH;
+					}
+					if ($mode == 2) {
+						$p = Lingua::CU::Scripts::HIP::convert($p);
+						last SWITCH;
+					}
+					if ($mode == 3) {
+						print "Warning: Greek not supported!$/";
+						last SWITCH;
+					}
+					if ($mode == 4) {
+						print "Warning: Glagolitic not supported!$/";
+						last SWITCH;
+					}
+				};
+
+				if ($opt_f eq "tex") {
+					$p =~ s/{/\\footnote{$Starts[$mode]/g;
+					$p =~ s/}/$Stops[$mode]}/g;
+					$p =~ s/\|\|(.+)\|\|/\\comments{$1}/g;
+				} elsif ($opt_f eq "html") {
+					$p =~ s/{/<SUP>$Starts[$mode]/g;
+					$p =~ s/}/<\/SPAN><\/SUP>/g;
+				} elsif ($opt_f eq "xml") {
+					$p =~ s/{/<FOOTNOTE>$Starts[$mode]/g;
+					$p =~ s/}/$Stops[$mode]<\/FOOTNOTE>/g;
+				}
+
+				print OUTFILE $p;
+			} #p
+			print OUTFILE $newline;
+			$lines++;
+		}
+	print OUTFILE $Stops[$mode];
+	print OUTFILE $footer;
+	close (OUTFILE);
+close (INFILE);
+my $sec = (time - $tic);
+
+print "Completed transcribing $lines lines in $sec seconds.$/";
+exit;
+
+__END__
+
+=head1 NAME
+
+hip2unicode - convert a file in HIP (HyperInvariant Presentation) to Unicode
+
+=head1 SYNOPSIS
+
+  hip2unicode [-c encoding] [-f outputFormat] infile
+  hip2unicode -h
+Reads infile, converts contents to Unicode, and writes to Terminal.
+Markup is converted to standard specified by -f option.
+
+=head1 OPTIONS
+
+  -c (or -encoding): specifies the encoding of the input file
+  -f (or -format): specifies the format of the output file
+The possible formats are:
+  -f html will create HTML
+  -f tex will create LaTeX
+  -f xml will create XML.
+An associated XSLT file is at http://www.ponomar.net/hip2utf.xsl.
+
+If -f not set, markup in the HIP document is stripped and the output is plain text.
+
+  -h prints the help screen and exits
+
+=head1 DESCRIPTION
+
+Lorum ipsum dolor sit amet.
+
+=head1 SEE ALSO
+
+ucs2unicode
+
+=head1 AUTHOR
+
+Aleksandr Andreev L<aleksandr.andreev@gmail.com>
+
+=head1 LICENSING
+
+Copyright (c) 2015 Aleksandr Andreev (http://sci.ponomar.net/)
+
+This script is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.14.2 or,
+at your option, any later version of Perl you may have available.
+
+=cut
