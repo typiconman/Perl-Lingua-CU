@@ -5,7 +5,7 @@ use strict;
 use utf8;
 use Encode;
 
- use lib "/home/sasha/Documents/API/Perl-Lingua-CU/lib/";
+# use lib "/home/sasha/Documents/API/Perl-Lingua-CU/lib/";#XXX: DEBUG ONLY
 use Lingua::CU::Scripts::HIP;
 use Getopt::Long;
 use Pod::Usage;
