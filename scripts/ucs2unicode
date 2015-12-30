@@ -1,0 +1,125 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use utf8;
+use Encode;
+
+ use lib "/home/sasha/Documents/API/Perl-Lingua-CU/lib/";
+use Lingua::CU::Scripts::UCS;
+use Getopt::Long;
+use Pod::Usage;
+use File::Basename;
+
+our(%opts);
+GetOptions(\%opts, 
+	'encoding|c=s',
+	'help|h');
+
+unless ($ARGV[0] || $opts{'help'})
+{
+	pod2usage(1);
+	exit;
+}
+
+if ($opts{'help'})
+{
+	pod2usage(-verbose => 2, -noperldoc => 1);
+	exit;
+}
+
+my $encoding = $opts{'encoding'} || "UTF-8";
+if ($encoding) {
+	my %list = map { $_ => 1 } Encode->encodings(":all");
+	$list{"UTF-8"} = 1; # hack
+	unless (exists $list{$encoding}) {
+		print "Error: Encoding $encoding is not defined.$/";
+		print "Possible encodings are:$/";
+		print join(", ", keys %list);
+		print "$/";
+		exit;
+	}
+}
+
+my $infile = $ARGV[0];
+unless (-e $infile) {
+	print "Error: unable to find $infile.$/";
+	exit;
+}
+
+my ($name, $path, $suffix) = fileparse($infile, qr/\.[^.]*/);
+my $outfile = $path . $name . ".utf";
+my $tic = time;
+my $lines = 0; # keep track of lines
+
+open (INFILE, $infile) || die ("Cannot read from $infile: $!");
+	open (OUTFILE, ">:encoding(UTF-8)", $outfile) || die ("Cannot write to $outfile: $!");
+
+		while (<INFILE>) {
+			s/\r?\n//g;
+			$lines++;
+
+			$_= decode($encoding, $_);
+			print OUTFILE Lingua::CU::Scripts::UCS::convert($_);
+			print OUTFILE $/;
+		}
+	close (OUTFILE);
+close (INFILE);
+my $sec = (time - $tic);
+
+print "Completed transcribing $lines lines in $sec seconds.$/";
+exit;
+
+__END__
+
+=head1 NAME
+
+ucs2unicode - convert a file in UCS (Universal Church Slavonic) to Unicode
+
+=head1 SYNOPSIS
+
+  ucs2unicode [-c encoding] infile
+  ucs2unicode -h
+Reads infile, converts contents to Unicode, and writes to infile.utf.
+
+=head1 OPTIONS
+
+  -c (or -encoding): specifies the encoding of the input file
+  -h prints the help screen and exits
+
+=head1 DESCRIPTION
+
+UCS (Universal Church Slavonic) is a legacy 8-bit codepage for
+encoding Church Slavonic (Church Slavic) text, designed by
+Vladislav Dorosh and Nikolay Andryushchenko some time in the
+1990's, and based on the CP-1251 codepage.
+
+You can read about this specification at 
+L<http://irmologion.ru/ucsenc/ucsenc.html>.
+
+Unfortunately, many resources that provide data in Church
+Slavonic still use this codepage. This script will convert text data
+from the UCS codepage to Unicode.
+
+This script is intended for working with files in plain text.
+The author also provides an extension for LibreOffice for converting
+text inside documents of the DOC/DOCX/ODT formats.
+Please see L<http://sci.ponomar.net/> for more information.
+
+=head1 SEE ALSO
+
+hip2unicode
+
+=head1 AUTHOR
+
+Aleksandr Andreev L<aleksandr.andreev@gmail.com>
+
+=head1 LICENSING
+
+Copyright (c) 2015 Aleksandr Andreev (http://sci.ponomar.net/)
+
+This script is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.14.2 or,
+at your option, any later version of Perl you may have available.
+
+=cut
