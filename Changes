@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::CU.
 
+0.04 Wed Dec 30 11:02:30 2015
+	- adding scripts, rewrite of numeric methods
+
 0.03 Tue Feb 10 16:19:40 2015
 	- updated Collation algorithm based on changes in Roadmap
 

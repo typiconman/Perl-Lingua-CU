@@ -6,13 +6,13 @@ It provides the following features:
 
 * Resolve Church Slavonic abbreviations and _nomina sacra_
 * Convert between Cyrillic numerals and ASCII digits
-* Convert Church Slavonic text to Russian characters
-* Romanize (transliterate to Latin) Church Slavonic text
-* Convert between Cyrillic and Glagolitic text
+* Convert Church Slavonic text to Russian characters (not yet supported)
+* Romanize (transliterate to Latin) Church Slavonic text (not yet supported)
+* Convert between Cyrillic and Glagolitic text (not yet supported)
 * Convert between Unicode and legacy UCS and HIP encodings
 * Sort Church Slavonic words using a tailoring of the DUCET
-* Perform stemming of Church Slavonic words (not implemented yet!)
-* Perform hyphenation of Church Slavonic words (not implemented yet!)
+* Perform stemming of Church Slavonic words (not yet supported)
+* Perform hyphenation of Church Slavonic words (work in progress)
 
 This program is ALPHA-PHASE software and is thus provided with ABSOLUTELY NO WARRANTY,
 not even the implied warranties of merchantability or fitness for a purpose.
