@@ -18,7 +18,7 @@ our @ISA = qw(Exporter);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(
-	asciiToCyrillic cyrillicToAscii resolve cu2ru hip2unicode
+	asciiToCyrillic cyrillicToAscii resolve cu2ru hip2unicode zf2unicode
 ) ] );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
@@ -211,7 +211,15 @@ sub asciiToCyrillic {
 	}
 	return $output;
 }
-	
+
+sub isNumericCu {
+	my $text = shift;
+	my $o = join ('|', grep { $digits{$_} < 10 } keys %digits);
+	my $t = join ('|', grep { $digits{$_} >= 10 && $digits{$_} < 100 } keys %digits);
+	my $h = join ('|', grep { $digits{$_} >= 100 } keys %digits);
+	return $text =~ /^(҂+[$h])?(҂+[$t])?(҂+[$o])?[$h]?([клмнѯопч]?[$o]?|[$o]?і)$/;
+}
+
 sub cu2ru {
 	my $text = shift;
 	my $params = shift; # params: noaccent, modernrules
@@ -309,7 +317,14 @@ sub hip2unicode {
 	use Lingua::CU::Scripts::HIP;
 	return $script eq 'Cyrs' ? Lingua::CU::Scripts::HIP::convert($text) :
 		$script eq 'Cyrl' ? Lingua::CU::Scripts::HIP::convert_Cyrl($text) :
-		$script eq 'Latn' ? Lingua::CU::Scripts::HIP::convert_Latn($text) : $text;
+		$script eq 'Latn' ? Lingua::CU::Scripts::HIP::convert_Latn($text) : 
+		$text;
+}
+
+sub zf2unicode {
+	my $text = shift;
+	use Lingua::CU::Scripts::HIP;
+	return Lingua::CU::Scripts::HIP::convert_Zf($text);
 }
 
 1;
@@ -351,7 +366,7 @@ It includes the following capabilities:
 
 =item Sort Church Slavonic words using a tailoring of the DUCET
 
-=item Perform stemming of Church Slavonic words (TODO)
+=item Perform hyphenation of Church Slavonic words (TODO)
 
 =back
 
@@ -391,6 +406,15 @@ Takes a Cyrillic numeral and returns the corresponding ASCII digits.
 Carps if C<$numeral> is not a well-formatted Slavonic number.
 
 Example: C<cyrillicToAscii("рк҃а")> returns C<121>.
+
+=head2 isNumericCu
+
+Usage: C<isNumericCu( $text )>
+
+Given UTF-8 encoded text C<$text>, return C<true> if C<$text> is a
+well-formatted Cyrillic numeral and C<false> otherwise.
+
+Example: C<isNumericCu("рк҃а")> returns C<true>.
 
 =head2 resolve
 
@@ -446,6 +470,19 @@ For more on HIP, see L<http://orthlib.ru/hip/hip-9.html> (in Russian).
 Optional parameter C<$script> is an ISO 15924 script code specifying the script
 of the HIP file (I<Cyrs> -- Slavonic, I<Cyrl> -- Civil Cyrillic, I<Glag> -- Glagolitic,
 I<Grek> -- Greek). If C<$script> is not specified, I<Cyrs> is assumed.
+
+Text in C<$text> must be encoded in UTF-8.
+
+For converting entire files, see the command line I<hip2unicode> script provided by
+B<Lingua::CU::Scripts>.
+
+=head2 zf2unicode
+
+Usage: C<zf2unicode( $text )>
+
+Takes C<$text> encoded in the modified HyperInvariant Presentation (HIP)
+as used by the Znamenny Fund and returns its Unicode representation.
+For more on HIP, see L<http://znamen.ru/fmt-slav.htm> (in Russian).
 
 Text in C<$text> must be encoded in UTF-8.
 

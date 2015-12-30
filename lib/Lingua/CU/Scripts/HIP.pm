@@ -56,6 +56,30 @@ sub convert_Cyrl {
 	return NFC($string);
 }
 
+sub convert_Zf {
+	my $string = shift;
+
+	# add in the additional equivs used by ZF
+	my %zfequivs = ();
+	unless (%zfequivs = do "Lingua/CU/Scripts/hipequivs_Zf") {
+		croak "Couldn't parse hipequivs_Zf: $@" if ($@);
+		croak "Couldn't do hipequivs_Zf: $!" unless (%civil);
+		croak "Couldn't run hipequivs_Zf" unless (keys %civil);
+	}
+
+	@dictionary{keys %zfequivs} = values %zfequivs;
+	delete $dictionary{'*'};
+	study $string;
+	my $what = join("|", map (quotemeta, keys %dictionary));
+	$string =~ s/($what)/$dictionary{$1}/g;
+
+	# dot the i's
+	$what = chr(0x0456) . "([^$diactrics])";
+	$string =~ s/$what/\x{0456}\x{0308}$1/g;
+	$string =~ s/\x{F8FF}/\x{0456}/g;
+	return NFC($string);
+}
+
 sub convert {
 	my $string = shift;
 	
