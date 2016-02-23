@@ -39,3 +39,4 @@ use utf8;
 '\т' => chr(0x2DEE),
 '\Т' => chr(0xA66F),
 '\ъ' => chr(0x033E),
+'0' => chr(0x1C82),
