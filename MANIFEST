@@ -8,11 +8,11 @@ lib/Lingua/CU.pm
 lib/Lingua/CU/Collate.pm
 lib/Lingua/CU/Hyphenate.pm
 lib/Lingua/CU/Scripts.pm
-lib/Lingua/CU/words.txt
 lib/Lingua/CU/Scripts/hipequivs
 lib/Lingua/CU/Scripts/hipequivs_Cyrl
 lib/Lingua/CU/Scripts/hipequivs_Latn
 lib/Lingua/CU/Scripts/hipequivs_Zf
 lib/Lingua/CU/Scripts/HIP.pm
 lib/Lingua/CU/Scripts/ucsequivs
+lib/Lingua/CU/Scripts/ostrogequivs
 lib/Lingua/CU/Scripts/UCS.pm

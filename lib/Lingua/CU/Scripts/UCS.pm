@@ -25,6 +25,8 @@ sub convert {
 	study $string;
 	my $what = join("|", map (quotemeta, keys %dictionary));
 	$string =~ s/($what)/$dictionary{$1}/g;
+	# fix initial e, which is not specified correctly in UCS
+	$string =~ s/\x{0415}\x{0486}/\x{0404}\x{0486}/g;
 	return NFC($string);
 }
 
