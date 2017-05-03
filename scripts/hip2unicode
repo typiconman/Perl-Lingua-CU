@@ -158,12 +158,12 @@ open (INFILE, $infile) || die ("Cannot read from $infile: $!");
 
 				# STEP ZERO: REMOVE COMMENTS
 				if ($opt_f eq "tex") {
-					$p =~ s/\%{(.+)}/||$1||/g;
+					$p =~ s/\%[{](.+)}/||$1||/g;
 				} elsif ($opt_f eq "html" || $opt_f eq "xml") {
-					$p =~ s/\%{(.+)}/<!-- $1 -->/g;
+					$p =~ s/\%[{](.+)}/<!-- $1 -->/g;
 					# we may have a comment spanning two or more lines
 					# in this, case convert the front
-					$p =~ s/\%{/<!-- /;
+					$p =~ s/\%[{]/<!-- /;
 					# set the comment flag
 					$isINCOMMENT = 1;
 					# check if we're in comment to convert the back
