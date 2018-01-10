@@ -1,7 +1,9 @@
 Changes
+cu.txt
 LICENSE
 Makefile.PL
 MANIFEST
+mklocale.pl
 README
 t/Lingua-CU.t
 lib/Lingua/CU.pm
