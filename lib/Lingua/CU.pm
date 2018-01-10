@@ -7,6 +7,7 @@ use utf8;
 
 require Exporter;
 require Carp;
+use Unicode::Normalize qw( NFD NFC );
 
 our @ISA = qw(Exporter);
 
@@ -95,6 +96,8 @@ my %resolver = (
 	chr(0xA656)	=> "Я", # Ioted a
 	chr(0xA657)	=> "я" # ioted a
 );
+
+our @explodable = qw( 0x0400 0x0401 0x0403 0x0407 0x040c 0x040d 0x040e 0x0419 0x0439 0x0450 0x0451 0x0453 0x0457 0x045c 0x045d 0x045e 0x0476 0x0477 0x0479 );
 
 INIT {
 	# load the Titlo resolution Data into memory
@@ -327,6 +330,27 @@ sub zf2unicode {
 	return Lingua::CU::Scripts::HIP::convert_Zf($text);
 }
 
+sub explodeNFD {
+	my $text = shift;
+	
+	$text = NFC( $text );
+	my %explodeMap = map { chr(hex( $_ )) => NFD(chr(hex( $_ ))) } @explodable;
+	$explodeMap{chr(hex('0x047d'))} = chr(hex('0xa64d')) . chr(hex('0x0486')) . chr(hex('0x0311')); # broad omega with veliky apostrof (Not in UAX 15)
+	$explodeMap{chr(hex('0x0479'))} = chr(hex('0x1c82')) . chr(hex('0x0443')); # digraph uk (not in UAX 15)
+	my $explodeRex = join('|', keys %explodeMap);
+	unless ($text =~ m/$explodeRex/) {
+		return $text;
+	}
+
+	my @array;
+	my ($first, $rest) = split(//, $text, 2);
+	push @array, map { $first . $_ } explodeNFD($rest);
+	if ($first =~ m/$explodeRex/) {
+		push @array, map { $explodeMap{$first} . $_ } explodeNFD($rest);
+	}
+	return @array;
+}
+
 1;
 
 =pod
@@ -488,6 +512,13 @@ Text in C<$text> must be encoded in UTF-8.
 
 For converting entire files, see the command line I<hip2unicode> script provided by
 B<Lingua::CU::Scripts>.
+
+=head2 explodeNFD
+
+Usage: C<explodeNFD( $text )>
+
+Takes C<$text> and generates all possible equivalent representations by
+substituting each expandable character with all possible NFD expansions.
 
 =head1 SEE ALSO
 
