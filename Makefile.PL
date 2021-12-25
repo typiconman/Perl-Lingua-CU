@@ -8,7 +8,7 @@ my @scripts = grep {-f && !m/\./o && !m/~$/o } glob("scripts/*");
 
 ## generate the cu.pl file
 print "Generating collation tailoring for Church Slavonic...\n";
-unless (my $return = do 'mklocale.pl') {
+unless (my $return = do './mklocale.pl') {
 	die "Couldn't create collation tailoring: $@" if $@;
         die "couldn't do mklocale.pl: $!"    unless defined $return;
         die "couldn't run mklocale.pl"       unless $return;
