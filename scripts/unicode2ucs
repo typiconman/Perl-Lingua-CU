@@ -1,0 +1,106 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use utf8;
+use Encode;
+
+use Lingua::CU::Scripts::Unicode2UCS;
+use Getopt::Long;
+use Pod::Usage;
+use File::Basename;
+
+our(%opts);
+GetOptions(\%opts,
+	'encoding|c=s',
+	'help|h');
+
+unless ($ARGV[0] || $opts{'help'})
+{
+	pod2usage(1);
+	exit;
+}
+
+if ($opts{'help'})
+{
+	pod2usage(-verbose => 2, -noperldoc => 1);
+	exit;
+}
+
+my $encoding = $opts{'encoding'} || "UTF-8";
+if ($encoding) {
+	my %list = map { $_ => 1 } Encode->encodings(":all");
+	$list{"UTF-8"} = 1; # hack
+	unless (exists $list{$encoding}) {
+		print "Error: Encoding $encoding is not defined.$/";
+		print "Possible encodings are:$/";
+		print join(", ", keys %list);
+		print "$/";
+		exit;
+	}
+}
+
+my $infile = $ARGV[0];
+unless (-e $infile) {
+	print "Error: unable to find $infile.$/";
+	exit;
+}
+
+my ($name, $path, $suffix) = fileparse($infile, qr/\.[^.]*/);
+my $outfile = $path . $name . ".ucs";
+my $tic = time;
+my $lines = 0; # keep track of lines
+
+open (INFILE, "<:encoding($encoding)", $infile) || die ("Cannot read from $infile: $!");
+	open (OUTFILE, ">:encoding(cp1251)", $outfile) || die ("Cannot write to $outfile: $!");
+
+		while (<INFILE>) {
+			s/\r?\n//g;
+			$lines++;
+
+			print OUTFILE Lingua::CU::Scripts::Unicode2UCS::convert($_);
+			print OUTFILE $/;
+		}
+	close (OUTFILE);
+close (INFILE);
+my $sec = (time - $tic);
+
+print "Completed transcribing $lines lines in $sec seconds.$/";
+exit;
+
+__END__
+
+=head1 NAME
+
+unicode2ucs - convert a file in Unicode to UCS (Universal Church Slavonic)
+
+=head1 SYNOPSIS
+
+  unicode2ucs [-c encoding] infile
+  unicode2ucs -h
+Reads infile, converts contents to UCS, and writes to infile.ucs.
+
+=head1 OPTIONS
+
+  -c (or -encoding): specifies the encoding of the input file
+  -h prints the help screen and exits
+
+=head1 DESCRIPTION
+
+This script converts Unicode Church Slavonic text to UCS (Universal Church Slavonic),
+a legacy 8-bit codepage for encoding Church Slavonic (Church Slavic) text, designed by
+Vladislav Dorosh and Nikolay Andryushchenko some time in the 1990's, and based on the
+CP-1251 codepage.
+
+This script performs the reverse operation of the ucs2unicode script, converting from
+Unicode back to the UCS codepage. It handles case-sensitive accent encoding, where
+lowercase letters use digits (1-8) for accents and uppercase letters use symbols
+(~@#$%^&_) for accents.
+
+This script is intended for working with files in plain text.
+
+=head1 SEE ALSO
+
+ucs2unicode, hip2unicode
+
+=cut
